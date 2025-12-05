@@ -9,7 +9,7 @@ let isEditMode = false;
 
 // API Base URL
 const API_URL = 'api/';
-const GEOJSON_URL = 'data/kecamatan.geojson';
+const GEOJSON_URL = '/data/kecamatan.geojson';
 
 // Initialize map
 function initMap() {
