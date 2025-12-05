@@ -23,9 +23,9 @@
                 <p>Pemetaan Sarana Ibadah di Bandar Lampung</p>
             </div>
             <div class="header-actions">
-                <!-- <button id="btn-add" class="btn btn-primary">
+                <button id="btn-add" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Tambah Data
-                </button> -->
+                </button>
                 <button id="btn-stats" class="btn btn-info">
                     <i class="fas fa-chart-bar"></i> Statistik
                 </button>

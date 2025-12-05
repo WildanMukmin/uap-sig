@@ -1,6 +1,7 @@
 // Global variables
 let map;
 let markersLayer;
+let kecamatanLayer;
 let allData = [];
 let filteredData = [];
 let tempMarker = null;
@@ -8,6 +9,7 @@ let isEditMode = false;
 
 // API Base URL
 const API_URL = 'api/';
+const GEOJSON_URL = 'data/kecamatan.geojson';
 
 // Initialize map
 function initMap() {
@@ -20,14 +22,129 @@ function initMap() {
         maxZoom: 19
     }).addTo(map);
 
-    // Create markers layer
+    // Create layer groups
+    kecamatanLayer = L.layerGroup().addTo(map);
     markersLayer = L.layerGroup().addTo(map);
 
     // Add click event to map
     map.on('click', onMapClick);
 
-    // Load data
+    // Load kecamatan boundaries first, then load data
+    loadKecamatanBoundaries();
     loadData();
+}
+
+// Load kecamatan boundaries from GeoJSON
+async function loadKecamatanBoundaries() {
+    try {
+        const response = await fetch(GEOJSON_URL);
+        const geojson = await response.json();
+        
+        // Style function for polygons
+        function style(feature) {
+            return {
+                fillColor: getColorByKecamatan(feature.properties.NAMOBJ || feature.properties.Kecamatan),
+                weight: 2,
+                opacity: 1,
+                color: '#2563eb',
+                dashArray: '3',
+                fillOpacity: 0.15
+            };
+        }
+        
+        // Highlight style
+        function highlightFeature(e) {
+            const layer = e.target;
+            
+            layer.setStyle({
+                weight: 3,
+                color: '#1e40af',
+                dashArray: '',
+                fillOpacity: 0.3
+            });
+            
+            layer.bringToFront();
+            
+            // Show info
+            const props = layer.feature.properties;
+            const kecamatan = props.NAMOBJ || props.Kecamatan || 'Tidak diketahui';
+            const kepadatan = props.Kepadatan || props.kepadatan || '-';
+            
+            layer.bindTooltip(`
+                <strong>${kecamatan}</strong><br>
+                Kepadatan: ${kepadatan} jiwa/km²
+            `, {
+                permanent: false,
+                direction: 'center',
+                className: 'kecamatan-tooltip'
+            }).openTooltip();
+        }
+        
+        // Reset style
+        function resetHighlight(e) {
+            kecamatanGeoJSON.resetStyle(e.target);
+            e.target.closeTooltip();
+        }
+        
+        // Click handler
+        function onEachFeature(feature, layer) {
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight,
+                click: function(e) {
+                    map.fitBounds(e.target.getBounds());
+                    const kecamatan = feature.properties.NAMOBJ || feature.properties.Kecamatan;
+                    filterByKecamatan(kecamatan);
+                }
+            });
+        }
+        
+        // Add GeoJSON to map
+        const kecamatanGeoJSON = L.geoJSON(geojson, {
+            style: style,
+            onEachFeature: onEachFeature
+        }).addTo(kecamatanLayer);
+        
+        console.log('Kecamatan boundaries loaded successfully');
+        
+    } catch (error) {
+        console.error('Error loading kecamatan boundaries:', error);
+        console.log('Continuing without kecamatan layer...');
+    }
+}
+
+// Get color by kecamatan name
+function getColorByKecamatan(kecamatan) {
+    const colors = {
+        'TELUKBETUNG TIMUR': '#ef4444',
+        'TELUKBETUNG SELATAN': '#f97316',
+        'TELUKBETUNG UTARA': '#f59e0b',
+        'TELUKBETUNG BARAT': '#eab308',
+        'PANJANG': '#84cc16',
+        'TANJUNG KARANG PUSAT': '#22c55e',
+        'TANJUNG KARANG BARAT': '#10b981',
+        'TANJUNG KARANG TIMUR': '#14b8a6',
+        'KEMILING': '#06b6d4',
+        'RAJABASA': '#0ea5e9',
+        'TANJUNG SENENG': '#3b82f6',
+        'SUKABUMI': '#6366f1',
+        'SUKARAME': '#8b5cf6',
+        'KEDAMAIAN': '#a855f7',
+        'KEDATON': '#d946ef',
+        'LABUHAN RATU': '#ec4899',
+        'WAY HALIM': '#f43f5e',
+        'LANGKAPURA': '#64748b',
+        'ENGGAL': '#71717a',
+        'KEMILING': '#78716c'
+    };
+    
+    return colors[kecamatan] || '#94a3b8';
+}
+
+// Filter by kecamatan (when clicking on polygon)
+function filterByKecamatan(kecamatan) {
+    document.getElementById('filter-kecamatan').value = kecamatan;
+    applyFilters();
 }
 
 // Load data from API
@@ -42,6 +159,7 @@ async function loadData() {
             displayMarkers(filteredData);
             displayList(filteredData);
             populateFilters();
+            updateMarkerClusters();
         }
     } catch (error) {
         console.error('Error loading data:', error);
@@ -49,24 +167,52 @@ async function loadData() {
     }
 }
 
+// Update marker clusters by kecamatan
+function updateMarkerClusters() {
+    const kecamatanCounts = {};
+    
+    allData.forEach(feature => {
+        const kec = feature.properties.kecamatan || 'Tidak Diketahui';
+        kecamatanCounts[kec] = (kecamatanCounts[kec] || 0) + 1;
+    });
+    
+    console.log('Sarana Ibadah per Kecamatan:', kecamatanCounts);
+}
+
 // Display markers on map
 function displayMarkers(data) {
     markersLayer.clearLayers();
     
+    // Group by kecamatan
+    const groupedByKecamatan = {};
+    
     data.forEach(feature => {
         const props = feature.properties;
-        const coords = feature.geometry.coordinates;
+        const kecamatan = props.kecamatan || 'Tidak Diketahui';
         
-        // Get icon based on jenis
-        const icon = getIconByJenis(props.jenis);
-        
-        // Create marker
-        const marker = L.marker([coords[1], coords[0]], { icon: icon })
-            .bindPopup(createPopupContent(props))
-            .addTo(markersLayer);
-        
-        // Store feature data in marker
-        marker.feature = feature;
+        if (!groupedByKecamatan[kecamatan]) {
+            groupedByKecamatan[kecamatan] = [];
+        }
+        groupedByKecamatan[kecamatan].push(feature);
+    });
+    
+    // Display markers grouped
+    Object.keys(groupedByKecamatan).forEach(kecamatan => {
+        groupedByKecamatan[kecamatan].forEach(feature => {
+            const props = feature.properties;
+            const coords = feature.geometry.coordinates;
+            
+            // Get icon based on jenis
+            const icon = getIconByJenis(props.jenis);
+            
+            // Create marker
+            const marker = L.marker([coords[1], coords[0]], { icon: icon })
+                .bindPopup(createPopupContent(props))
+                .addTo(markersLayer);
+            
+            // Store feature data in marker
+            marker.feature = feature;
+        });
     });
 }
 
@@ -80,12 +226,21 @@ function getIconByJenis(jenis) {
         'Klenteng': '#8b5cf6'
     };
     
+    const iconSymbols = {
+        'Masjid': 'fa-mosque',
+        'Gereja': 'fa-church',
+        'Pura': 'fa-place-of-worship',
+        'Vihara': 'fa-om',
+        'Klenteng': 'fa-yin-yang'
+    };
+    
     const color = iconColors[jenis] || '#6b7280';
+    const symbol = iconSymbols[jenis] || 'fa-place-of-worship';
     
     return L.divIcon({
         className: 'custom-marker',
         html: `<div style="background-color: ${color}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-mosque" style="color: white; font-size: 14px;"></i>
+                <i class="fas ${symbol}" style="color: white; font-size: 14px;"></i>
                </div>`,
         iconSize: [30, 30],
         iconAnchor: [15, 15]
@@ -163,7 +318,10 @@ function focusMarker(id) {
         document.querySelectorAll('.list-item').forEach(item => {
             item.classList.remove('active');
         });
-        document.querySelector(`.list-item[data-id="${id}"]`).classList.add('active');
+        const listItem = document.querySelector(`.list-item[data-id="${id}"]`);
+        if (listItem) {
+            listItem.classList.add('active');
+        }
     }
 }
 
@@ -173,7 +331,7 @@ function populateFilters() {
     const kecamatanSelect = document.getElementById('filter-kecamatan');
     
     kecamatanSelect.innerHTML = '<option value="">Semua</option>' + 
-        kecamatans.map(k => `<option value="${k}">${k}</option>`).join('');
+        kecamatans.sort().map(k => `<option value="${k}">${k}</option>`).join('');
 }
 
 // Apply filters
@@ -463,6 +621,15 @@ style.textContent = `
     @keyframes pulse {
         0%, 100% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .kecamatan-tooltip {
+        background: white;
+        border: 2px solid #2563eb;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-weight: 600;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
 `;
 document.head.appendChild(style);
