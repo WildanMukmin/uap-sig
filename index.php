@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web GIS - Sarana Ibadah Bandar Lampung</title>
-    
+
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -89,7 +91,7 @@
             <div class="modal-body">
                 <form id="form-sarana">
                     <input type="hidden" id="form-id">
-                    
+
                     <div class="form-group">
                         <label>Nama Sarana Ibadah <span class="required">*</span></label>
                         <input type="text" id="form-nama" class="form-control" required>
@@ -110,11 +112,13 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Latitude <span class="required">*</span></label>
-                            <input type="number" id="form-latitude" class="form-control" step="0.000001" required readonly>
+                            <input type="number" id="form-latitude" class="form-control" step="0.000001" required
+                                readonly>
                         </div>
                         <div class="form-group">
                             <label>Longitude <span class="required">*</span></label>
-                            <input type="number" id="form-longitude" class="form-control" step="0.000001" required readonly>
+                            <input type="number" id="form-longitude" class="form-control" step="0.000001" required
+                                readonly>
                         </div>
                     </div>
 
@@ -126,7 +130,29 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Kecamatan</label>
-                            <input type="text" id="form-kecamatan" class="form-control">
+                            <select id="form-kecamatan" class="form-control">
+                                <option value="">-- Pilih Kecamatan --</option>
+                                <option value="Tanjungkarang Timur">Tanjungkarang Timur</option>
+                                <option value="Tanjungkarang Pusat">Tanjungkarang Pusat</option>
+                                <option value="Kedaton">Kedaton</option>
+                                <option value="Bumiwaras">Bumiwaras</option>
+                                <option value="Telukbetung Utara">Telukbetung Utara</option>
+                                <option value="Telukbetung Selatan">Telukbetung Selatan</option>
+                                <option value="Wayhalim">Wayhalim</option>
+                                <option value="Enggal">Enggal</option>
+                                <option value="Langkapura">Langkapura</option>
+                                <option value="Labuhanratu">Labuhanratu</option>
+                                <option value="Tanjungsenang">Tanjungsenang</option>
+                                <option value="Kedamaian">Kedamaian</option>
+                                <option value="Sukarame">Sukarame</option>
+                                <option value="Panjang">Panjang</option>
+                                <option value="Tanjungkarang Barat">Tanjungkarang Barat</option>
+                                <option value="Telukbetung Timur">Telukbetung Timur</option>
+                                <option value="Rajabasa">Rajabasa</option>
+                                <option value="Kemiling">Kemiling</option>
+                                <option value="Sukabumi">Sukabumi</option>
+                                <option value="Telukbetung Barat">Telukbetung Barat</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Kapasitas</label>
@@ -174,8 +200,9 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+
     <!-- Custom JS -->
     <script src="assets/js/map.js"></script>
 </body>
+
 </html>
