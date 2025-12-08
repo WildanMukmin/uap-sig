@@ -1,48 +1,65 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web GIS - Sarana Ibadah Bandar Lampung</title>
-
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
+    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <style>
+        #map { height: 600px; }
+        .leaflet-popup-content { min-width: 250px; }
+    </style>
 </head>
-
-<body>
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <div class="header-content">
-                <h1><i class="fas fa-map-marked-alt"></i> Web GIS Sarana Ibadah</h1>
-                <p>Pemetaan Sarana Ibadah di Bandar Lampung</p>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-map-marked-alt text-2xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold">Web GIS Sarana Ibadah</h1>
+                        <p class="text-sm text-blue-200">Kota Bandar Lampung</p>
+                    </div>
+                </div>
+                <div id="nav-actions" class="flex items-center space-x-4">
+                    <a href="#statistik" class="hover:text-blue-200 transition">
+                        <i class="fas fa-chart-bar"></i> Statistik
+                    </a>
+                    <a href="admin-login.php" class="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold">
+                        <i class="fas fa-sign-in-alt"></i> Login Admin
+                    </a>
+                </div>
             </div>
-            <div class="header-actions">
-                <button id="btn-add" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Tambah Data
-                </button>
-                <button id="btn-stats" class="btn btn-info">
-                    <i class="fas fa-chart-bar"></i> Statistik
-                </button>
-            </div>
-        </header>
+        </div>
+    </nav>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Sidebar -->
-            <aside class="sidebar">
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-filter"></i> Filter Data</h3>
-                    <div class="filter-group">
-                        <label>Jenis Sarana Ibadah:</label>
-                        <select id="filter-jenis" class="form-control">
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Sidebar Filter -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-md p-6 sticky top-6">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-filter mr-2 text-blue-600"></i>
+                        Filter Data
+                    </h2>
+                    
+                    <!-- Filter Jenis -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Jenis Sarana Ibadah
+                        </label>
+                        <select id="filter-jenis" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="">Semua</option>
                             <option value="Masjid">Masjid</option>
                             <option value="Gereja">Gereja</option>
@@ -51,158 +68,93 @@
                             <option value="Klenteng">Klenteng</option>
                         </select>
                     </div>
-                    <div class="filter-group">
-                        <label>Kecamatan:</label>
-                        <select id="filter-kecamatan" class="form-control">
+
+                    <!-- Filter Kecamatan -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Kecamatan
+                        </label>
+                        <select id="filter-kecamatan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="">Semua</option>
                         </select>
                     </div>
-                    <div class="filter-group">
-                        <label>Pencarian:</label>
-                        <input type="text" id="search-box" class="form-control" placeholder="Cari nama...">
+
+                    <!-- Search Box -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Pencarian
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="search-box" placeholder="Cari nama..." class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
+
+                    <!-- Data Count -->
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-gray-600">Total Data Ditampilkan</p>
+                        <p class="text-2xl font-bold text-blue-600" id="data-count">0</p>
                     </div>
                 </div>
-
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-list"></i> Daftar Sarana Ibadah</h3>
-                    <div id="list-container" class="list-container">
-                        <p class="loading">Memuat data...</p>
-                    </div>
-                </div>
-            </aside>
-
-            <!-- Map Container -->
-            <main class="map-container">
-                <div id="map"></div>
-                <div class="map-info">
-                    <p><i class="fas fa-mouse-pointer"></i> Klik pada peta untuk menambah titik baru</p>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- Modal Form -->
-    <div id="modal-form" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Tambah Data Sarana Ibadah</h2>
-                <span class="close">&times;</span>
             </div>
-            <div class="modal-body">
-                <form id="form-sarana">
-                    <input type="hidden" id="form-id">
 
-                    <div class="form-group">
-                        <label>Nama Sarana Ibadah <span class="required">*</span></label>
-                        <input type="text" id="form-nama" class="form-control" required>
+            <!-- Map & List -->
+            <div class="lg:col-span-3 space-y-6">
+                <!-- Map Container -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+                        <h2 class="text-lg font-bold flex items-center">
+                            <i class="fas fa-map mr-2"></i>
+                            Peta Sebaran Sarana Ibadah
+                        </h2>
                     </div>
+                    <div id="map"></div>
+                </div>
 
-                    <div class="form-group">
-                        <label>Jenis <span class="required">*</span></label>
-                        <select id="form-jenis" class="form-control" required>
-                            <option value="">Pilih Jenis</option>
-                            <option value="Masjid">Masjid</option>
-                            <option value="Gereja">Gereja</option>
-                            <option value="Pura">Pura</option>
-                            <option value="Vihara">Vihara</option>
-                            <option value="Klenteng">Klenteng</option>
-                        </select>
+                <!-- List Container -->
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list mr-2 text-blue-600"></i>
+                            Daftar Sarana Ibadah
+                        </h2>
                     </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Latitude <span class="required">*</span></label>
-                            <input type="number" id="form-latitude" class="form-control" step="0.000001" required
-                                readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Longitude <span class="required">*</span></label>
-                            <input type="number" id="form-longitude" class="form-control" step="0.000001" required
-                                readonly>
+                    <div id="list-container" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto">
+                        <div class="col-span-full text-center py-8 text-gray-500">
+                            <i class="fas fa-spinner fa-spin text-3xl mb-2"></i>
+                            <p>Memuat data...</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <div class="form-group">
-                        <label>Alamat</label>
-                        <textarea id="form-alamat" class="form-control" rows="2"></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Kecamatan</label>
-                            <select id="form-kecamatan" class="form-control">
-                                <option value="">-- Pilih Kecamatan --</option>
-                                <option value="Tanjungkarang Timur">Tanjungkarang Timur</option>
-                                <option value="Tanjungkarang Pusat">Tanjungkarang Pusat</option>
-                                <option value="Kedaton">Kedaton</option>
-                                <option value="Bumiwaras">Bumiwaras</option>
-                                <option value="Telukbetung Utara">Telukbetung Utara</option>
-                                <option value="Telukbetung Selatan">Telukbetung Selatan</option>
-                                <option value="Wayhalim">Wayhalim</option>
-                                <option value="Enggal">Enggal</option>
-                                <option value="Langkapura">Langkapura</option>
-                                <option value="Labuhanratu">Labuhanratu</option>
-                                <option value="Tanjungsenang">Tanjungsenang</option>
-                                <option value="Kedamaian">Kedamaian</option>
-                                <option value="Sukarame">Sukarame</option>
-                                <option value="Panjang">Panjang</option>
-                                <option value="Tanjungkarang Barat">Tanjungkarang Barat</option>
-                                <option value="Telukbetung Timur">Telukbetung Timur</option>
-                                <option value="Rajabasa">Rajabasa</option>
-                                <option value="Kemiling">Kemiling</option>
-                                <option value="Sukabumi">Sukabumi</option>
-                                <option value="Telukbetung Barat">Telukbetung Barat</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Kapasitas</label>
-                            <input type="number" id="form-kapasitas" class="form-control">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Tahun Berdiri</label>
-                        <input type="number" id="form-tahun" class="form-control" min="1900" max="2025">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Keterangan</label>
-                        <textarea id="form-keterangan" class="form-control" rows="3"></textarea>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Simpan
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="btn-cancel">
-                            <i class="fas fa-times"></i> Batal
-                        </button>
-                    </div>
-                </form>
+        <!-- Statistics Section -->
+        <div id="statistik" class="mt-12">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-chart-bar mr-3 text-blue-600"></i>
+                    Statistik Sarana Ibadah
+                </h2>
+                <div id="stats-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <!-- Stats will be loaded here -->
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Statistik -->
-    <div id="modal-stats" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Statistik Sarana Ibadah</h2>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div id="stats-container">
-                    <p class="loading">Memuat statistik...</p>
-                </div>
-            </div>
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Web GIS Sarana Ibadah Bandar Lampung</p>
+            <p class="text-sm text-gray-400 mt-2">Sistem Informasi Geografis Berbasis Web</p>
         </div>
-    </div>
+    </footer>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Custom JS -->
-    <script src="assets/js/map.js"></script>
+    
+    <!-- Main JS -->
+    <script src="assets/js/guest-map.js"></script>
 </body>
-
 </html>

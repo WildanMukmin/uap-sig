@@ -4,7 +4,10 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once '../config/database.php';
+require_once '../config/auth.php';
+
+// Require admin access
+requireAdmin();
 
 // Cek method
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -31,7 +34,7 @@ foreach ($required as $field) {
 $nama = sanitizeInput($input['nama']);
 $jenis = sanitizeInput($input['jenis']);
 $alamat = isset($input['alamat']) ? sanitizeInput($input['alamat']) : '';
-$kecamatan = isset($input['kecamatan']) ? sanitizeInput($input['kecamatan']) : '';
+$kecamatanName = isset($input['kecamatan']) ? sanitizeInput($input['kecamatan']) : '';
 $kapasitas = isset($input['kapasitas']) ? intval($input['kapasitas']) : 0;
 $tahun_berdiri = isset($input['tahun_berdiri']) ? intval($input['tahun_berdiri']) : null;
 $latitude = floatval($input['latitude']);
@@ -55,13 +58,33 @@ if (!$conn) {
     jsonResponse(false, "Database connection failed", null, 500);
 }
 
-// Prepared statement untuk mencegah SQL injection
-$stmt = $conn->prepare("INSERT INTO sarana_ibadah (nama, jenis, alamat, kecamatan, kapasitas, tahun_berdiri, latitude, longitude, keterangan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+// Get kecamatan_id if kecamatan name provided
+$kecamatanId = null;
+if (!empty($kecamatanName)) {
+    $kecStmt = $conn->prepare("SELECT id FROM kecamatan WHERE nama = ?");
+    $kecStmt->bind_param("s", $kecamatanName);
+    $kecStmt->execute();
+    $kecResult = $kecStmt->get_result();
+    if ($kecResult->num_rows > 0) {
+        $kecRow = $kecResult->fetch_assoc();
+        $kecamatanId = $kecRow['id'];
+    }
+    $kecStmt->close();
+}
 
-$stmt->bind_param("ssssiddds", $nama, $jenis, $alamat, $kecamatan, $kapasitas, $tahun_berdiri, $latitude, $longitude, $keterangan);
+// Get current user ID
+$createdBy = $_SESSION['user_id'];
+
+// Prepared statement untuk mencegah SQL injection
+$stmt = $conn->prepare("INSERT INTO sarana_ibadah (nama, jenis, alamat, kecamatan_id, kecamatan_name, kapasitas, tahun_berdiri, latitude, longitude, keterangan, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+$stmt->bind_param("sssisidddsi", $nama, $jenis, $alamat, $kecamatanId, $kecamatanName, $kapasitas, $tahun_berdiri, $latitude, $longitude, $keterangan, $createdBy);
 
 if ($stmt->execute()) {
     $new_id = $conn->insert_id;
+    
+    // Log activity
+    logActivity($createdBy, 'create', 'sarana_ibadah', $new_id, "Created sarana ibadah: {$nama}");
     
     // Ambil data yang baru diinsert
     $result = $conn->query("SELECT * FROM sarana_ibadah WHERE id = $new_id");

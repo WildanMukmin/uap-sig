@@ -5,6 +5,8 @@ header('Access-Control-Allow-Methods: PUT, POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
 require_once '../config/database.php';
+require_once '../config/auth.php';
+requireAdmin();
 
 // Cek method
 if ($_SERVER['REQUEST_METHOD'] !== 'PUT' && $_SERVER['REQUEST_METHOD'] !== 'POST') {

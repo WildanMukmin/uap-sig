@@ -1,53 +1,157 @@
--- Database untuk Web GIS Sarana Ibadah Bandar Lampung
+-- Database untuk Web GIS Sarana Ibadah Bandar Lampung (Improved)
 
 CREATE DATABASE IF NOT EXISTS webgis_sarana_ibadah;
 USE webgis_sarana_ibadah;
 
--- Tabel untuk menyimpan data sarana ibadah
+-- Tabel Users untuk authentication
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100),
+    role ENUM('admin', 'guest') DEFAULT 'guest',
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
+    INDEX idx_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabel Kecamatan
+CREATE TABLE IF NOT EXISTS kecamatan (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nama VARCHAR(100) NOT NULL,
+    luas_km DECIMAL(10, 3),
+    geojson LONGTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nama (nama)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabel Sarana Ibadah (Improved)
 CREATE TABLE IF NOT EXISTS sarana_ibadah (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama VARCHAR(255) NOT NULL,
     jenis ENUM('Masjid', 'Gereja', 'Pura', 'Vihara', 'Klenteng') NOT NULL,
     alamat TEXT,
-    kecamatan VARCHAR(100),
-    kapasitas INT,
+    kecamatan_id INT,
+    kecamatan_name VARCHAR(100),
+    kapasitas INT DEFAULT 0,
     tahun_berdiri YEAR,
     latitude DECIMAL(10, 8) NOT NULL,
     longitude DECIMAL(11, 8) NOT NULL,
     keterangan TEXT,
     foto VARCHAR(255),
+    luas DECIMAL(10, 2) DEFAULT 0.0,
+    fgsibd INT,
+    namobj VARCHAR(255),
+    remark VARCHAR(255),
+    created_by INT,
+    updated_by INT,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (kecamatan_id) REFERENCES kecamatan(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_jenis (jenis),
-    INDEX idx_kecamatan (kecamatan),
-    INDEX idx_koordinat (latitude, longitude)
+    INDEX idx_kecamatan (kecamatan_id),
+    INDEX idx_kecamatan_name (kecamatan_name),
+    INDEX idx_koordinat (latitude, longitude),
+    INDEX idx_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Data sample untuk testing
-INSERT INTO sarana_ibadah (nama, jenis, alamat, kecamatan, kapasitas, tahun_berdiri, latitude, longitude, keterangan) VALUES
-('Masjid Agung Al-Furqon', 'Masjid', 'Jl. Kartini No.1', 'Teluk Betung Selatan', 3000, 1982, -5.4285, 105.2619, 'Masjid terbesar di Bandar Lampung'),
-('Gereja Katedral Santo Fransiskus Xaverius', 'Gereja', 'Jl. Kartini No.86', 'Teluk Betung Selatan', 800, 1936, -5.4312, 105.2645, 'Gereja Katolik bersejarah'),
-('Masjid Al-Anwar', 'Masjid', 'Jl. Raden Intan', 'Tanjung Karang Pusat', 1500, 1970, -5.4200, 105.2650, 'Masjid di pusat kota'),
-('Pura Agung Wira Loka Natha', 'Pura', 'Jl. Pulau Pisang', 'Tanjung Karang Barat', 500, 1985, -5.4350, 105.2550, 'Pura Hindu di Bandar Lampung'),
-('Vihara Dhamma Sukha', 'Vihara', 'Jl. Diponegoro', 'Teluk Betung Utara', 300, 1990, -5.4150, 105.2700, 'Vihara Buddha'),
-('Masjid Jami Al-Istiqomah', 'Masjid', 'Jl. ZA Pagar Alam', 'Kedaton', 1000, 1995, -5.3950, 105.2580, 'Masjid di wilayah Kedaton'),
-('Gereja GPIB Immanuel', 'Gereja', 'Jl. Teuku Umar', 'Tanjung Karang Timur', 600, 1965, -5.4180, 105.2750, 'Gereja Protestan');
+-- Tabel Activity Log
+CREATE TABLE IF NOT EXISTS activity_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action ENUM('create', 'read', 'update', 'delete', 'login', 'logout') NOT NULL,
+    table_name VARCHAR(50),
+    record_id INT,
+    description TEXT,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_user (user_id),
+    INDEX idx_action (action),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- View untuk menampilkan data dalam format yang mudah dibaca
-CREATE VIEW v_sarana_ibadah AS
+-- Insert default admin user (password: admin123)
+INSERT INTO users (username, password, full_name, email, role) VALUES
+('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'admin@bandarlampung.go.id', 'admin');
+
+-- Insert Kecamatan data
+INSERT INTO kecamatan (nama, luas_km) VALUES
+('Kemiling', 21.204),
+('Teluk Betung Barat', 17.788),
+('Teluk Betung Timur', 10.414),
+('Teluk Betung Selatan', 3.549),
+('Bumi Waras', 4.247),
+('Panjang', 13.047),
+('Sukabumi', 24.649),
+('Sukarame', 10.514),
+('Tanjung Senang', 9.366),
+('Rajabasa', 12.882),
+('Langkapura', 5.15),
+('Labuhan Ratu', 5.994),
+('Kedaton', 3.705),
+('Way Halim', 6.242),
+('Kedamaian', 8.273),
+('Teluk Betung Utara', 4.095),
+('Enggal', 2.748),
+('Tanjung Karang Timur', 1.998),
+('Tanjung Karang Pusat', 3.351),
+('Tanjung Karang Barat', 11.435);
+
+-- Views untuk reporting
+CREATE VIEW v_sarana_ibadah_detail AS
 SELECT 
-    id,
-    nama,
+    s.id,
+    s.nama,
+    s.jenis,
+    s.alamat,
+    s.kecamatan_name as kecamatan,
+    k.luas_km as luas_kecamatan,
+    s.kapasitas,
+    s.tahun_berdiri,
+    s.latitude,
+    s.longitude,
+    s.keterangan,
+    s.foto,
+    s.is_active,
+    u1.username as created_by_username,
+    u2.username as updated_by_username,
+    DATE_FORMAT(s.created_at, '%d-%m-%Y %H:%i') as tanggal_input,
+    DATE_FORMAT(s.updated_at, '%d-%m-%Y %H:%i') as tanggal_update
+FROM sarana_ibadah s
+LEFT JOIN kecamatan k ON s.kecamatan_id = k.id
+LEFT JOIN users u1 ON s.created_by = u1.id
+LEFT JOIN users u2 ON s.updated_by = u2.id
+WHERE s.is_active = TRUE
+ORDER BY s.created_at DESC;
+
+-- View untuk statistik
+CREATE VIEW v_statistik_sarana AS
+SELECT 
     jenis,
-    alamat,
-    kecamatan,
-    kapasitas,
-    tahun_berdiri,
-    latitude,
-    longitude,
-    keterangan,
-    foto,
-    DATE_FORMAT(created_at, '%d-%m-%Y %H:%i') as tanggal_input,
-    DATE_FORMAT(updated_at, '%d-%m-%Y %H:%i') as tanggal_update
+    COUNT(*) as jumlah,
+    SUM(kapasitas) as total_kapasitas,
+    AVG(kapasitas) as rata_kapasitas
 FROM sarana_ibadah
-ORDER BY created_at DESC;
+WHERE is_active = TRUE
+GROUP BY jenis;
+
+CREATE VIEW v_statistik_kecamatan AS
+SELECT 
+    k.nama as kecamatan,
+    k.luas_km,
+    COUNT(s.id) as jumlah_sarana,
+    COUNT(DISTINCT s.jenis) as jenis_sarana
+FROM kecamatan k
+LEFT JOIN sarana_ibadah s ON k.id = s.kecamatan_id AND s.is_active = TRUE
+GROUP BY k.id, k.nama, k.luas_km
+ORDER BY jumlah_sarana DESC;
