@@ -15,7 +15,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        #map { height: 600px; }
+        #map { 
+            height: 600px;
+            z-index: 100;
+        }
         .leaflet-popup-content { min-width: 250px; }
         
         /* Custom popup styling */

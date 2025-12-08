@@ -15,7 +15,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        #map { height: 500px; }
+        #map { 
+            height: 500px;
+            z-index: 100;
+        }
         .leaflet-popup-content { min-width: 250px; }
         
         /* Custom popup styling */
@@ -238,7 +241,7 @@
     </div>
 
     <!-- Modal Form (akan dilanjutkan di JavaScript) -->
-    <div id="modal-form" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div id="modal-form" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[1000]">
         <!-- Modal content akan dibuat di JavaScript -->
     </div>
 
