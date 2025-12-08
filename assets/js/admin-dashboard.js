@@ -211,7 +211,7 @@ async function loadData() {
         }
     } catch (error) {
         console.error('Error loading data:', error);
-        showNotification('Gagal memuat data', 'error');
+        showNotification('Gagal memuat data' + error, 'error');
     }
 }
 
@@ -235,8 +235,8 @@ function displayMarkers(data) {
             .addTo(markersLayer);
     });
     
-    // Bring markers to front so they appear above kecamatan layer
-    markersLayer.bringToFront();
+    // // Bring markers to front so they appear above kecamatan layer
+    // markersLayer.bringToFront();
 }
 
 // Get icon by jenis

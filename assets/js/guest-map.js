@@ -142,7 +142,7 @@ async function loadData() {
         }
     } catch (error) {
         console.error('Error loading data:', error);
-        showError('Gagal memuat data');
+        showError('Gagal memuat data' + error);
     }
 }
 
@@ -166,8 +166,8 @@ function displayMarkers(data) {
         marker.feature = feature;
     });
     
-    // Bring markers to front
-    markersLayer.bringToFront();
+    // // Bring markers to front
+    // markersLayer.bringToFront();
 }
 
 // Get icon by jenis
