@@ -43,12 +43,12 @@ async function loadKecamatanBoundaries() {
         // Style function for polygons
         function style(feature) {
             return {
-                fillColor: getColorByKecamatan(feature.properties.NAMOBJ || feature.properties.Kecamatan),
+                fillColor: getColorByKecamatan(feature.properties.Kecamatan.toUpperCase()),
                 weight: 2,
                 opacity: 1,
                 color: '#2563eb',
                 dashArray: '3',
-                fillOpacity: 0.15
+                fillOpacity: 0.4
             };
         }
         
@@ -60,19 +60,19 @@ async function loadKecamatanBoundaries() {
                 weight: 3,
                 color: '#1e40af',
                 dashArray: '',
-                fillOpacity: 0.3
+                fillOpacity: 0.6
             });
             
             layer.bringToFront();
             
             // Show info
             const props = layer.feature.properties;
-            const kecamatan = props.NAMOBJ || props.Kecamatan || 'Tidak diketahui';
-            const kepadatan = props.Kepadatan || props.kepadatan || '-';
+            const kecamatan = props.Kecamatan || 'Tidak diketahui';
+            const luas = props.Luas_km || '-';
             
             layer.bindTooltip(`
                 <strong>${kecamatan}</strong><br>
-                Kepadatan: ${kepadatan} jiwa/km²
+                Luas Kecamatan: ${luas} km²
             `, {
                 permanent: false,
                 direction: 'center',
@@ -93,7 +93,7 @@ async function loadKecamatanBoundaries() {
                 mouseout: resetHighlight,
                 click: function(e) {
                     map.fitBounds(e.target.getBounds());
-                    const kecamatan = feature.properties.NAMOBJ || feature.properties.Kecamatan;
+                    const kecamatan = feature.properties.Kecamatan;
                     filterByKecamatan(kecamatan);
                 }
             });
