@@ -17,6 +17,36 @@
     <style>
         #map { height: 600px; }
         .leaflet-popup-content { min-width: 250px; }
+        
+        /* Custom popup styling */
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .custom-popup .leaflet-popup-tip {
+            box-shadow: 0 3px 14px rgba(0,0,0,0.2);
+        }
+        
+        /* Ensure popup appears above everything */
+        .leaflet-popup {
+            z-index: 1000 !important;
+        }
+        
+        /* Kecamatan tooltip styling */
+        .kecamatan-tooltip {
+            background: white;
+            border: 2px solid #2563eb;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Fix for popup being cut off */
+        .leaflet-container {
+            overflow: visible !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50">

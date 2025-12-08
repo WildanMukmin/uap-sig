@@ -1,6 +1,7 @@
 // Global variables
 let map;
 let markersLayer;
+let kecamatanLayer;
 let allData = [];
 let filteredData = [];
 let tempMarker = null;
@@ -8,6 +9,7 @@ let isEditMode = false;
 let currentEditId = null;
 
 const API_URL = 'api/';
+const GEOJSON_URL = 'data/kecamatan.geojson';
 
 // Check authentication on page load
 async function checkAuth() {
@@ -59,10 +61,109 @@ function initMap() {
         maxZoom: 19
     }).addTo(map);
     
+    kecamatanLayer = L.layerGroup().addTo(map);
     markersLayer = L.layerGroup().addTo(map);
     
     // Add click event for adding new markers
     map.on('click', onMapClick);
+    
+    loadKecamatanBoundaries();
+}
+
+// Load kecamatan boundaries from GeoJSON
+async function loadKecamatanBoundaries() {
+    try {
+        const response = await fetch(GEOJSON_URL);
+        const geojson = await response.json();
+        
+        // Style function for polygons
+        function style(feature) {
+            return {
+                fillColor: getColorByKecamatan(feature.properties.Kecamatan),
+                weight: 2,
+                opacity: 1,
+                color: '#2563eb',
+                dashArray: '3',
+                fillOpacity: 0.2
+            };
+        }
+        
+        // Highlight style
+        function highlightFeature(e) {
+            const layer = e.target;
+            
+            layer.setStyle({
+                weight: 3,
+                color: '#1e40af',
+                dashArray: '',
+                fillOpacity: 0.4
+            });
+            
+            layer.bringToFront();
+            markersLayer.bringToFront();
+        }
+        
+        // Reset style
+        function resetHighlight(e) {
+            kecamatanGeoJSON.resetStyle(e.target);
+        }
+        
+        // Click handler
+        function onEachFeature(feature, layer) {
+            const kecamatan = feature.properties.Kecamatan || 'Tidak diketahui';
+            const luas = feature.properties.Luas_km || '-';
+            
+            layer.bindTooltip(`<strong>${kecamatan}</strong><br>Luas: ${luas} km²`, {
+                permanent: false,
+                direction: 'center',
+                className: 'kecamatan-tooltip'
+            });
+            
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight
+            });
+        }
+        
+        // Add GeoJSON to map
+        const kecamatanGeoJSON = L.geoJSON(geojson, {
+            style: style,
+            onEachFeature: onEachFeature
+        }).addTo(kecamatanLayer);
+        
+        console.log('Kecamatan boundaries loaded successfully');
+        
+    } catch (error) {
+        console.error('Error loading kecamatan boundaries:', error);
+    }
+}
+
+// Get color by kecamatan name
+function getColorByKecamatan(kecamatan) {
+    const colors = {
+        'Kemiling': '#ef4444',
+        'Teluk Betung Barat': '#f97316',
+        'Teluk Betung Timur': '#f59e0b',
+        'Teluk Betung Selatan': '#eab308',
+        'Bumi Waras': '#84cc16',
+        'Panjang': '#22c55e',
+        'Sukabumi': '#10b981',
+        'Sukarame': '#14b8a6',
+        'Tanjung Senang': '#06b6d4',
+        'Rajabasa': '#0ea5e9',
+        'Langkapura': '#3b82f6',
+        'Labuhan Ratu': '#6366f1',
+        'Kedaton': '#8b5cf6',
+        'Way Halim': '#a855f7',
+        'Kedamaian': '#d946ef',
+        'Teluk Betung Utara': '#ec4899',
+        'Enggal': '#f43f5e',
+        'Tanjung Karang Timur': '#64748b',
+        'Tanjung Karang Pusat': '#71717a',
+        'Tanjung Karang Barat': '#78716c'
+    };
+    
+    return colors[kecamatan] || '#94a3b8';
 }
 
 // Map click handler
@@ -125,9 +226,17 @@ function displayMarkers(data) {
         const icon = getIconByJenis(props.jenis);
         
         const marker = L.marker([coords[1], coords[0]], { icon: icon })
-            .bindPopup(createPopupContent(props))
+            .bindPopup(createPopupContent(props), {
+                maxWidth: 300,
+                className: 'custom-popup',
+                autoPan: true,
+                autoPanPadding: [50, 50]
+            })
             .addTo(markersLayer);
     });
+    
+    // Bring markers to front so they appear above kecamatan layer
+    markersLayer.bringToFront();
 }
 
 // Get icon by jenis
@@ -307,9 +416,17 @@ function editData(id) {
 
 // Create modal HTML
 function createModalHTML(lat, lng, data = null) {
+    const kecamatanOptions = [
+        'Kemiling', 'Teluk Betung Barat', 'Teluk Betung Timur', 'Teluk Betung Selatan',
+        'Bumi Waras', 'Panjang', 'Sukabumi', 'Sukarame', 'Tanjung Senang', 'Rajabasa',
+        'Langkapura', 'Labuhan Ratu', 'Kedaton', 'Way Halim', 'Kedamaian',
+        'Teluk Betung Utara', 'Enggal', 'Tanjung Karang Timur', 'Tanjung Karang Pusat',
+        'Tanjung Karang Barat'
+    ];
+    
     return `
         <div class="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
-            <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 flex justify-between items-center">
+            <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 flex justify-between items-center z-10">
                 <h2 class="text-xl font-bold">${isEditMode ? 'Edit' : 'Tambah'} Data Sarana Ibadah</h2>
                 <button onclick="closeModal()" class="text-white hover:text-gray-200">
                     <i class="fas fa-times text-2xl"></i>
@@ -343,8 +460,13 @@ function createModalHTML(lat, lng, data = null) {
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Kecamatan</label>
-                        <input type="text" id="form-kecamatan" value="${data?.kecamatan || ''}"
+                        <select id="form-kecamatan"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Pilih Kecamatan --</option>
+                            ${kecamatanOptions.map(kec => 
+                                `<option value="${kec}" ${data?.kecamatan === kec ? 'selected' : ''}>${kec}</option>`
+                            ).join('')}
+                        </select>
                     </div>
 
                     <div>

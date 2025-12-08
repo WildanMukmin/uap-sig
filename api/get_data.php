@@ -10,8 +10,8 @@ if (!$conn) {
     jsonResponse(false, "Database connection failed", null, 500);
 }
 
-// Query untuk mengambil semua data
-$sql = "SELECT * FROM sarana_ibadah ORDER BY created_at DESC";
+// Query untuk mengambil semua data yang aktif
+$sql = "SELECT * FROM sarana_ibadah WHERE is_active = TRUE ORDER BY created_at DESC";
 $result = $conn->query($sql);
 
 if (!$result) {
@@ -39,9 +39,11 @@ while ($row = $result->fetch_assoc()) {
             'nama' => $row['nama'],
             'jenis' => $row['jenis'],
             'alamat' => $row['alamat'],
-            'kecamatan' => $row['kecamatan'],
+            'kecamatan' => $row['kecamatan_name'],
             'kapasitas' => intval($row['kapasitas']),
             'tahun_berdiri' => $row['tahun_berdiri'],
+            'latitude' => floatval($row['latitude']),
+            'longitude' => floatval($row['longitude']),
             'keterangan' => $row['keterangan'],
             'foto' => $row['foto'],
             'created_at' => $row['created_at'],

@@ -4,8 +4,9 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: DELETE, POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once '../config/database.php';
 require_once '../config/auth.php';
+
+// Require admin access
 requireAdmin();
 
 // Cek method
@@ -42,11 +43,15 @@ if ($check->num_rows === 0) {
 
 $deleted_data = $check->fetch_assoc();
 
-// Delete data
-$stmt = $conn->prepare("DELETE FROM sarana_ibadah WHERE id = ?");
-$stmt->bind_param("i", $id);
+// Soft delete - set is_active = FALSE instead of actually deleting
+$stmt = $conn->prepare("UPDATE sarana_ibadah SET is_active = FALSE, updated_by = ? WHERE id = ?");
+$updatedBy = $_SESSION['user_id'];
+$stmt->bind_param("ii", $updatedBy, $id);
 
 if ($stmt->execute()) {
+    // Log activity
+    logActivity($updatedBy, 'delete', 'sarana_ibadah', $id, "Deleted sarana ibadah: {$deleted_data['nama']}");
+    
     jsonResponse(true, "Data berhasil dihapus", $deleted_data, 200);
 } else {
     jsonResponse(false, "Failed to delete data: " . $stmt->error, null, 500);

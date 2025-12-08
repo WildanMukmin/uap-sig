@@ -1,10 +1,12 @@
 // Global variables
 let map;
 let markersLayer;
+let kecamatanLayer;
 let allData = [];
 let filteredData = [];
 
 const API_URL = 'api/';
+const GEOJSON_URL = 'data/kecamatan.geojson';
 
 // Initialize map
 function initMap() {
@@ -15,9 +17,112 @@ function initMap() {
         maxZoom: 19
     }).addTo(map);
     
+    kecamatanLayer = L.layerGroup().addTo(map);
     markersLayer = L.layerGroup().addTo(map);
     
+    loadKecamatanBoundaries();
     loadData();
+}
+
+// Load kecamatan boundaries from GeoJSON
+async function loadKecamatanBoundaries() {
+    try {
+        const response = await fetch(GEOJSON_URL);
+        const geojson = await response.json();
+        
+        // Style function for polygons
+        function style(feature) {
+            return {
+                fillColor: getColorByKecamatan(feature.properties.Kecamatan),
+                weight: 2,
+                opacity: 1,
+                color: '#2563eb',
+                dashArray: '3',
+                fillOpacity: 0.3
+            };
+        }
+        
+        // Highlight style
+        function highlightFeature(e) {
+            const layer = e.target;
+            
+            layer.setStyle({
+                weight: 3,
+                color: '#1e40af',
+                dashArray: '',
+                fillOpacity: 0.5
+            });
+            
+            layer.bringToFront();
+            markersLayer.bringToFront();
+        }
+        
+        // Reset style
+        function resetHighlight(e) {
+            kecamatanGeoJSON.resetStyle(e.target);
+        }
+        
+        // Click handler
+        function onEachFeature(feature, layer) {
+            const kecamatan = feature.properties.Kecamatan || 'Tidak diketahui';
+            const luas = feature.properties.Luas_km || '-';
+            
+            layer.bindTooltip(`<strong>${kecamatan}</strong><br>Luas: ${luas} km²`, {
+                permanent: false,
+                direction: 'center',
+                className: 'kecamatan-tooltip'
+            });
+            
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight,
+                click: function(e) {
+                    map.fitBounds(e.target.getBounds());
+                    document.getElementById('filter-kecamatan').value = kecamatan;
+                    applyFilters();
+                }
+            });
+        }
+        
+        // Add GeoJSON to map
+        const kecamatanGeoJSON = L.geoJSON(geojson, {
+            style: style,
+            onEachFeature: onEachFeature
+        }).addTo(kecamatanLayer);
+        
+        console.log('Kecamatan boundaries loaded successfully');
+        
+    } catch (error) {
+        console.error('Error loading kecamatan boundaries:', error);
+    }
+}
+
+// Get color by kecamatan name
+function getColorByKecamatan(kecamatan) {
+    const colors = {
+        'Kemiling': '#ef4444',
+        'Teluk Betung Barat': '#f97316',
+        'Teluk Betung Timur': '#f59e0b',
+        'Teluk Betung Selatan': '#eab308',
+        'Bumi Waras': '#84cc16',
+        'Panjang': '#22c55e',
+        'Sukabumi': '#10b981',
+        'Sukarame': '#14b8a6',
+        'Tanjung Senang': '#06b6d4',
+        'Rajabasa': '#0ea5e9',
+        'Langkapura': '#3b82f6',
+        'Labuhan Ratu': '#6366f1',
+        'Kedaton': '#8b5cf6',
+        'Way Halim': '#a855f7',
+        'Kedamaian': '#d946ef',
+        'Teluk Betung Utara': '#ec4899',
+        'Enggal': '#f43f5e',
+        'Tanjung Karang Timur': '#64748b',
+        'Tanjung Karang Pusat': '#71717a',
+        'Tanjung Karang Barat': '#78716c'
+    };
+    
+    return colors[kecamatan] || '#94a3b8';
 }
 
 // Load data from API
@@ -52,11 +157,17 @@ function displayMarkers(data) {
         const icon = getIconByJenis(props.jenis);
         
         const marker = L.marker([coords[1], coords[0]], { icon: icon })
-            .bindPopup(createPopupContent(props))
+            .bindPopup(createPopupContent(props), {
+                maxWidth: 300,
+                className: 'custom-popup'
+            })
             .addTo(markersLayer);
         
         marker.feature = feature;
     });
+    
+    // Bring markers to front
+    markersLayer.bringToFront();
 }
 
 // Get icon by jenis

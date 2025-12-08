@@ -78,7 +78,7 @@ $createdBy = $_SESSION['user_id'];
 // Prepared statement untuk mencegah SQL injection
 $stmt = $conn->prepare("INSERT INTO sarana_ibadah (nama, jenis, alamat, kecamatan_id, kecamatan_name, kapasitas, tahun_berdiri, latitude, longitude, keterangan, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-$stmt->bind_param("sssisidddsi", $nama, $jenis, $alamat, $kecamatanId, $kecamatanName, $kapasitas, $tahun_berdiri, $latitude, $longitude, $keterangan, $createdBy);
+$stmt->bind_param("sssissiddsi", $nama, $jenis, $alamat, $kecamatanId, $kecamatanName, $kapasitas, $tahun_berdiri, $latitude, $longitude, $keterangan, $createdBy);
 
 if ($stmt->execute()) {
     $new_id = $conn->insert_id;

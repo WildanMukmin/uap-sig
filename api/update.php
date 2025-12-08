@@ -4,8 +4,9 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: PUT, POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once '../config/database.php';
 require_once '../config/auth.php';
+
+// Require admin access
 requireAdmin();
 
 // Cek method
@@ -47,20 +48,47 @@ $values = [];
 
 $allowed_fields = ['nama', 'jenis', 'alamat', 'kecamatan', 'kapasitas', 'tahun_berdiri', 'latitude', 'longitude', 'keterangan'];
 
+// Get kecamatan_id if kecamatan name provided
+$kecamatanId = null;
+$kecamatanName = null;
+
 foreach ($allowed_fields as $field) {
     if (isset($input[$field]) && $input[$field] !== '') {
-        $updates[] = "$field = ?";
-        
-        // Tentukan tipe data
-        if ($field === 'kapasitas' || $field === 'tahun_berdiri') {
+        if ($field === 'kecamatan') {
+            $kecamatanName = sanitizeInput($input[$field]);
+            
+            // Get kecamatan_id
+            $kecStmt = $conn->prepare("SELECT id FROM kecamatan WHERE nama = ?");
+            $kecStmt->bind_param("s", $kecamatanName);
+            $kecStmt->execute();
+            $kecResult = $kecStmt->get_result();
+            if ($kecResult->num_rows > 0) {
+                $kecRow = $kecResult->fetch_assoc();
+                $kecamatanId = $kecRow['id'];
+            }
+            $kecStmt->close();
+            
+            $updates[] = "kecamatan_id = ?";
             $types .= "i";
-            $values[] = intval($input[$field]);
-        } elseif ($field === 'latitude' || $field === 'longitude') {
-            $types .= "d";
-            $values[] = floatval($input[$field]);
-        } else {
+            $values[] = $kecamatanId;
+            
+            $updates[] = "kecamatan_name = ?";
             $types .= "s";
-            $values[] = sanitizeInput($input[$field]);
+            $values[] = $kecamatanName;
+        } else {
+            $updates[] = "$field = ?";
+            
+            // Tentukan tipe data
+            if ($field === 'kapasitas' || $field === 'tahun_berdiri') {
+                $types .= "i";
+                $values[] = intval($input[$field]);
+            } elseif ($field === 'latitude' || $field === 'longitude') {
+                $types .= "d";
+                $values[] = floatval($input[$field]);
+            } else {
+                $types .= "s";
+                $values[] = sanitizeInput($input[$field]);
+            }
         }
     }
 }
@@ -77,6 +105,12 @@ if (isset($input['jenis'])) {
     }
 }
 
+// Add updated_by
+$updatedBy = $_SESSION['user_id'];
+$updates[] = "updated_by = ?";
+$types .= "i";
+$values[] = $updatedBy;
+
 // Tambahkan ID ke parameter
 $types .= "i";
 $values[] = $id;
@@ -89,6 +123,9 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param($types, ...$values);
 
 if ($stmt->execute()) {
+    // Log activity
+    logActivity($updatedBy, 'update', 'sarana_ibadah', $id, "Updated sarana ibadah ID: {$id}");
+    
     // Ambil data yang sudah diupdate
     $result = $conn->query("SELECT * FROM sarana_ibadah WHERE id = $id");
     $updated_data = $result->fetch_assoc();
