@@ -26,7 +26,7 @@ if (!$input) {
 $required = ['nama', 'jenis', 'latitude', 'longitude'];
 foreach ($required as $field) {
     if (empty($input[$field])) {
-        jsonResponse(false, "Field '$field' is required", null, 400);
+        jsonResponse(false, "Field '$field' wajib diisi", null, 400);
     }
 }
 
@@ -44,7 +44,7 @@ $keterangan = isset($input['keterangan']) ? sanitizeInput($input['keterangan']) 
 // Validasi jenis
 $valid_jenis = ['Masjid', 'Gereja', 'Pura', 'Vihara', 'Klenteng'];
 if (!in_array($jenis, $valid_jenis)) {
-    jsonResponse(false, "Invalid jenis. Must be one of: " . implode(', ', $valid_jenis), null, 400);
+    jsonResponse(false, "Jenis tidak valid. Harus salah satu dari: " . implode(', ', $valid_jenis), null, 400);
 }
 
 // Validasi koordinat (untuk wilayah Bandar Lampung)
@@ -90,11 +90,14 @@ if ($stmt->execute()) {
     $result = $conn->query("SELECT * FROM sarana_ibadah WHERE id = $new_id");
     $new_data = $result->fetch_assoc();
     
+    $stmt->close();
+    $conn->close();
+    
     jsonResponse(true, "Data berhasil ditambahkan", $new_data, 201);
 } else {
-    jsonResponse(false, "Failed to insert data: " . $stmt->error, null, 500);
+    $error = $stmt->error;
+    $stmt->close();
+    $conn->close();
+    jsonResponse(false, "Failed to insert data: " . $error, null, 500);
 }
-
-$stmt->close();
-$conn->close();
 ?>

@@ -15,7 +15,9 @@ $sql = "SELECT * FROM sarana_ibadah WHERE is_active = TRUE ORDER BY created_at D
 $result = $conn->query($sql);
 
 if (!$result) {
-    jsonResponse(false, "Query failed: " . $conn->error, null, 500);
+    $error = $conn->error;
+    $conn->close();
+    jsonResponse(false, "Query failed: " . $error, null, 500);
 }
 
 // Membuat struktur GeoJSON
@@ -38,13 +40,13 @@ while ($row = $result->fetch_assoc()) {
             'id' => intval($row['id']),
             'nama' => $row['nama'],
             'jenis' => $row['jenis'],
-            'alamat' => $row['alamat'],
-            'kecamatan' => $row['kecamatan_name'],
+            'alamat' => $row['alamat'] ?? '',
+            'kecamatan' => $row['kecamatan_name'] ?? '',
             'kapasitas' => intval($row['kapasitas']),
             'tahun_berdiri' => $row['tahun_berdiri'],
             'latitude' => floatval($row['latitude']),
             'longitude' => floatval($row['longitude']),
-            'keterangan' => $row['keterangan'],
+            'keterangan' => $row['keterangan'] ?? '',
             'foto' => $row['foto'],
             'created_at' => $row['created_at'],
             'updated_at' => $row['updated_at']

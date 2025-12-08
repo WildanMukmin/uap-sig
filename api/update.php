@@ -24,7 +24,7 @@ if (!$input) {
 
 // Validasi input
 if (empty($input['id'])) {
-    jsonResponse(false, "Field 'id' is required", null, 400);
+    jsonResponse(false, "Field 'id' wajib diisi", null, 400);
 }
 
 $id = intval($input['id']);
@@ -36,8 +36,9 @@ if (!$conn) {
 }
 
 // Cek apakah data exists
-$check = $conn->query("SELECT id FROM sarana_ibadah WHERE id = $id");
+$check = $conn->query("SELECT id FROM sarana_ibadah WHERE id = $id AND is_active = TRUE");
 if ($check->num_rows === 0) {
+    $conn->close();
     jsonResponse(false, "Data dengan ID $id tidak ditemukan", null, 404);
 }
 
@@ -94,14 +95,16 @@ foreach ($allowed_fields as $field) {
 }
 
 if (empty($updates)) {
-    jsonResponse(false, "No fields to update", null, 400);
+    $conn->close();
+    jsonResponse(false, "Tidak ada data yang akan diupdate", null, 400);
 }
 
 // Validasi jenis jika ada
 if (isset($input['jenis'])) {
     $valid_jenis = ['Masjid', 'Gereja', 'Pura', 'Vihara', 'Klenteng'];
     if (!in_array($input['jenis'], $valid_jenis)) {
-        jsonResponse(false, "Invalid jenis", null, 400);
+        $conn->close();
+        jsonResponse(false, "Jenis tidak valid", null, 400);
     }
 }
 
@@ -130,11 +133,14 @@ if ($stmt->execute()) {
     $result = $conn->query("SELECT * FROM sarana_ibadah WHERE id = $id");
     $updated_data = $result->fetch_assoc();
     
+    $stmt->close();
+    $conn->close();
+    
     jsonResponse(true, "Data berhasil diupdate", $updated_data, 200);
 } else {
-    jsonResponse(false, "Failed to update data: " . $stmt->error, null, 500);
+    $error = $stmt->error;
+    $stmt->close();
+    $conn->close();
+    jsonResponse(false, "Failed to update data: " . $error, null, 500);
 }
-
-$stmt->close();
-$conn->close();
 ?>

@@ -24,7 +24,7 @@ if (!$input) {
 
 // Validasi input
 if (empty($input['id'])) {
-    jsonResponse(false, "Field 'id' is required", null, 400);
+    jsonResponse(false, "Field 'id' wajib diisi", null, 400);
 }
 
 $id = intval($input['id']);
@@ -38,6 +38,7 @@ if (!$conn) {
 // Cek apakah data exists
 $check = $conn->query("SELECT * FROM sarana_ibadah WHERE id = $id");
 if ($check->num_rows === 0) {
+    $conn->close();
     jsonResponse(false, "Data dengan ID $id tidak ditemukan", null, 404);
 }
 
@@ -52,11 +53,14 @@ if ($stmt->execute()) {
     // Log activity
     logActivity($updatedBy, 'delete', 'sarana_ibadah', $id, "Deleted sarana ibadah: {$deleted_data['nama']}");
     
+    $stmt->close();
+    $conn->close();
+    
     jsonResponse(true, "Data berhasil dihapus", $deleted_data, 200);
 } else {
-    jsonResponse(false, "Failed to delete data: " . $stmt->error, null, 500);
+    $error = $stmt->error;
+    $stmt->close();
+    $conn->close();
+    jsonResponse(false, "Failed to delete data: " . $error, null, 500);
 }
-
-$stmt->close();
-$conn->close();
 ?>

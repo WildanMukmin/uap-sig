@@ -27,7 +27,8 @@ class Database {
             $this->conn->set_charset("utf8mb4");
             
         } catch(Exception $e) {
-            echo "Connection Error: " . $e->getMessage();
+            error_log("Connection Error: " . $e->getMessage());
+            return null;
         }
         
         return $this->conn;
@@ -60,15 +61,18 @@ function jsonResponse($success, $message, $data = null, $code = 200) {
         $response['data'] = $data;
     }
     
-    echo json_encode($response);
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 // Fungsi untuk sanitize input
 function sanitizeInput($data) {
+    if ($data === null || $data === '') {
+        return $data;
+    }
     $data = trim($data);
     $data = stripslashes($data);
-    $data = htmlspecialchars($data);
+    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
     return $data;
 }
 ?>

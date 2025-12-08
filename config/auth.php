@@ -45,22 +45,33 @@ function requireLogin() {
 function loginUser($username, $password) {
     $conn = getConnection();
     
+    if (!$conn) {
+        return ['success' => false, 'message' => 'Database connection failed'];
+    }
+    
     $stmt = $conn->prepare("SELECT id, username, password, full_name, email, role, is_active FROM users WHERE username = ? LIMIT 1");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
     
     if ($result->num_rows === 0) {
+        $stmt->close();
+        $conn->close();
         return ['success' => false, 'message' => 'Username tidak ditemukan'];
     }
     
     $user = $result->fetch_assoc();
     
     if (!$user['is_active']) {
+        $stmt->close();
+        $conn->close();
         return ['success' => false, 'message' => 'Akun tidak aktif'];
     }
     
+    // Simple password check (in production, use password_hash and password_verify)
     if ($password !== $user['password']) {
+        $stmt->close();
+        $conn->close();
         return ['success' => false, 'message' => 'Password salah'];
     }
     
@@ -74,12 +85,12 @@ function loginUser($username, $password) {
     $updateStmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
     $updateStmt->bind_param("i", $user['id']);
     $updateStmt->execute();
+    $updateStmt->close();
     
     // Log activity
     logActivity($user['id'], 'login', 'users', $user['id'], 'User logged in');
     
     $stmt->close();
-    $updateStmt->close();
     $conn->close();
     
     return [
@@ -110,6 +121,10 @@ function logoutUser() {
 function logActivity($userId, $action, $tableName = null, $recordId = null, $description = null) {
     $conn = getConnection();
     
+    if (!$conn) {
+        return false;
+    }
+    
     $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
     
@@ -118,11 +133,17 @@ function logActivity($userId, $action, $tableName = null, $recordId = null, $des
     $stmt->execute();
     $stmt->close();
     $conn->close();
+    
+    return true;
 }
 
 // Function untuk register user baru (hanya admin yang bisa)
 function registerUser($username, $password, $fullName, $email, $role = 'guest') {
     $conn = getConnection();
+    
+    if (!$conn) {
+        return ['success' => false, 'message' => 'Database connection failed'];
+    }
     
     // Check if username exists
     $checkStmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
@@ -137,12 +158,9 @@ function registerUser($username, $password, $fullName, $email, $role = 'guest') 
     }
     $checkStmt->close();
     
-    // Hash password
-    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-    
-    // Insert user
+    // Insert user (simple password storage - in production use password_hash)
     $stmt = $conn->prepare("INSERT INTO users (username, password, full_name, email, role) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $username, $hashedPassword, $fullName, $email, $role);
+    $stmt->bind_param("sssss", $username, $password, $fullName, $email, $role);
     
     if ($stmt->execute()) {
         $newId = $conn->insert_id;
